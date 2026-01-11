@@ -1,0 +1,10 @@
+import "dotenv/config";
+import app from "./app.js";
+
+const PORT = 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+//http://localhost:3000/api-docs/#/
+//npx prisma db seed
