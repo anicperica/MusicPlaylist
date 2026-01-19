@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha --exit \"src/tests/*.test.js\"",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "migrate": "prisma migrate dev --name init",
+  "seed": "node prisma/seed.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

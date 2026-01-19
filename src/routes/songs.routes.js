@@ -6,6 +6,8 @@ import {
   updateSong,
   deleteSong,
 } from "../controllers/songs.controller.js";
+import basicAuth from "../middleware/basicAuthmiddleware.js";
+import getAuth from "../middleware/getAuthmiddleware.js"
 
 const router = express.Router();
 
@@ -16,6 +18,7 @@ const router = express.Router();
  *     Song:
  *       type: object
  *       required:
+ *         - id
  *         - title
  *         - artist
  *         - duration
@@ -31,7 +34,24 @@ const router = express.Router();
  *           description: Song artist
  *         duration:
  *           type: integer
- *           description: Song duration in seconds
+ *           description: Duration of song in seconds
+ *     SongInput:
+ *       type: object
+ *       required:
+ *         - title
+ *         - artist
+ *         - duration
+ *       properties:
+ *         title:
+ *           type: string
+ *         artist:
+ *           type: string
+ *         duration:
+ *           type: integer
+ *   securitySchemes:
+ *     basicAuth:
+ *       type: http
+ *       scheme: basic
  */
 
 /**
@@ -40,8 +60,33 @@ const router = express.Router();
  *   get:
  *     summary: Get all songs
  *     tags: [Songs]
+ *     security:
+ *       - basicAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: title
+ *         schema:
+ *           type: string
+ *         description: Filter songs by title (partial match, case-insensitive)
+ *       - in: query
+ *         name: artist
+ *         schema:
+ *           type: string
+ *         description: Filter songs by artist (partial match, case-insensitive)
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [duration]
+ *         description: Sort by duration
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sorting order (asc or desc)
  *     responses:
- *       200:
+ *       '200':
  *         description: List of songs
  *         content:
  *           application/json:
@@ -50,7 +95,7 @@ const router = express.Router();
  *               items:
  *                 $ref: '#/components/schemas/Song'
  */
-router.get("/", getSongs);
+router.get("/",getAuth, getSongs);
 
 /**
  * @swagger
@@ -58,6 +103,8 @@ router.get("/", getSongs);
  *   get:
  *     summary: Get song by ID
  *     tags: [Songs]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -66,16 +113,16 @@ router.get("/", getSongs);
  *           type: integer
  *         description: Song ID
  *     responses:
- *       200:
+ *       '200':
  *         description: Song details
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Song'
- *       404:
+ *       '404':
  *         description: Song not found
  */
-router.get("/:id", getSongById);
+router.get("/:id",getAuth, getSongById);
 
 /**
  * @swagger
@@ -83,32 +130,25 @@ router.get("/:id", getSongById);
  *   post:
  *     summary: Create a new song
  *     tags: [Songs]
+ *     security:
+ *       - basicAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - artist
- *               - duration
- *             properties:
- *               title:
- *                 type: string
- *               artist:
- *                 type: string
- *               duration:
- *                 type: integer
+ *             $ref: '#/components/schemas/SongInput'
  *     responses:
- *       201:
+ *       '201':
  *         description: Song created
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Song'
+ *       '400':
+ *         description: Bad Request
  */
-router.post("/", createSong);
+router.post("/", basicAuth, createSong);
 
 /**
  * @swagger
@@ -116,6 +156,8 @@ router.post("/", createSong);
  *   put:
  *     summary: Update a song
  *     tags: [Songs]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -128,23 +170,18 @@ router.post("/", createSong);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               artist:
- *                 type: string
- *               duration:
- *                 type: integer
+ *             $ref: '#/components/schemas/SongInput'
  *     responses:
- *       200:
+ *       '200':
  *         description: Song updated
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Song'
+ *       '400':
+ *         description: Bad Request
  */
-router.put("/:id", updateSong);
+router.put("/:id", basicAuth, updateSong);
 
 /**
  * @swagger
@@ -152,6 +189,8 @@ router.put("/:id", updateSong);
  *   delete:
  *     summary: Delete a song
  *     tags: [Songs]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -160,9 +199,9 @@ router.put("/:id", updateSong);
  *           type: integer
  *         description: Song ID
  *     responses:
- *       200:
+ *       '200':
  *         description: Song deleted
  */
-router.delete("/:id", deleteSong);
+router.delete("/:id", basicAuth, deleteSong);
 
 export default router;

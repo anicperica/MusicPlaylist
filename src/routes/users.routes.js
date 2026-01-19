@@ -1,11 +1,12 @@
 import express from "express";
 import {
+  registerUser,
   getUsers,
   getUserById,
-  createUser,
   updateUser,
   deleteUser,
 } from "../controllers/users.controller.js";
+import basicAuth from "../middleware/basicAuthmiddleware.js";
 
 const router = express.Router();
 
@@ -16,20 +17,57 @@ const router = express.Router();
  *     User:
  *       type: object
  *       required:
- *         - name
- *         - email
+ *         - id
+ *         - username
  *       properties:
  *         id:
  *           type: integer
  *           description: Auto-generated ID
- *         name:
+ *         username:
  *           type: string
- *           description: User name
- *         email:
+ *           description: Unique username
+ *     UserRegisterInput:
+ *       type: object
+ *       required:
+ *         - username
+ *         - password
+ *       properties:
+ *         username:
  *           type: string
- *           format: email
- *           description: User email
+ *         password:
+ *           type: string
+ *     UserUpdateInput:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ *         password:
+ *           type: string
+ *   securitySchemes:
+ *     basicAuth:
+ *       type: http
+ *       scheme: basic
  */
+
+/**
+ * @swagger
+ * /users/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserRegisterInput'
+ *     responses:
+ *       '201':
+ *         description: User registered successfully
+ *       '400':
+ *         description: Bad request
+ */
+router.post("/register", registerUser);
 
 /**
  * @swagger
@@ -37,8 +75,10 @@ const router = express.Router();
  *   get:
  *     summary: Get all users
  *     tags: [Users]
+ *     security:
+ *       - basicAuth: []
  *     responses:
- *       200:
+ *       '200':
  *         description: List of users
  *         content:
  *           application/json:
@@ -47,7 +87,7 @@ const router = express.Router();
  *               items:
  *                 $ref: '#/components/schemas/User'
  */
-router.get("/", getUsers);
+router.get("/", basicAuth, getUsers);
 
 /**
  * @swagger
@@ -55,6 +95,8 @@ router.get("/", getUsers);
  *   get:
  *     summary: Get user by ID
  *     tags: [Users]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -63,47 +105,12 @@ router.get("/", getUsers);
  *           type: integer
  *         description: User ID
  *     responses:
- *       200:
+ *       '200':
  *         description: User details
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- *       404:
+ *       '404':
  *         description: User not found
  */
-router.get("/:id", getUserById);
-
-/**
- * @swagger
- * /users:
- *   post:
- *     summary: Create a new user
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - email
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *     responses:
- *       201:
- *         description: User created
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- */
-router.post("/", createUser);
+router.get("/:id", basicAuth, getUserById);
 
 /**
  * @swagger
@@ -111,6 +118,8 @@ router.post("/", createUser);
  *   put:
  *     summary: Update a user
  *     tags: [Users]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -123,22 +132,14 @@ router.post("/", createUser);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
+ *             $ref: '#/components/schemas/UserUpdateInput'
  *     responses:
- *       200:
+ *       '200':
  *         description: User updated
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
+ *       '400':
+ *         description: Bad Request
  */
-router.put("/:id", updateUser);
+router.put("/:id", basicAuth, updateUser);
 
 /**
  * @swagger
@@ -146,6 +147,8 @@ router.put("/:id", updateUser);
  *   delete:
  *     summary: Delete a user
  *     tags: [Users]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -154,9 +157,9 @@ router.put("/:id", updateUser);
  *           type: integer
  *         description: User ID
  *     responses:
- *       200:
+ *       '200':
  *         description: User deleted
  */
-router.delete("/:id", deleteUser);
+router.delete("/:id", basicAuth, deleteUser);
 
 export default router;

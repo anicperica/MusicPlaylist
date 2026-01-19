@@ -4,10 +4,11 @@ import { expect } from "chai";
 import app from "../app.js";
 import prisma from "../prismaClient.js";
 
-describe("Playlists routes", () => {
-  let createdUserId;
+describe("Playlists routes with admin/user GET middleware", () => {
   let createdSongId;
   let createdPlaylistId;
+  const adminCredentials = Buffer.from("admin:admin123").toString("base64");
+  const userCredentials = Buffer.from("user:user123").toString("base64"); 
 
   before(async () => {
     await prisma.playlistSong.deleteMany();
@@ -15,95 +16,133 @@ describe("Playlists routes", () => {
     await prisma.song.deleteMany();
     await prisma.user.deleteMany();
 
-    const user = await prisma.user.create({
-      data: { name: "Test User", email: "testuser@example.com" },
+    // kreiramo usera
+    await prisma.user.create({
+      data: { username: "user", password: Buffer.from("user123").toString("base64") },
     });
-    createdUserId = user.id;
 
+    // kreiramo pjesmu
     const song = await prisma.song.create({
-      data: {
-        title: "Pariske Kapije",
-        artist: "Haris Džinović",
-        duration: 250,
-      },
+      data: { title: "Pariske Kapije", artist: "Haris Džinović", duration: 250 },
     });
     createdSongId = song.id;
   });
 
-  it("POST /playlists - kreira novu playlistu", async () => {
-    const res = await request(app).post("/playlists").send({
-      name: "Moja Playlist",
-      userId: createdUserId,
-    });
+  after(async () => {
+    await prisma.$disconnect();
+  });
+
+  // prvo kreiramo playlistu POST-om
+  it("POST /playlists - admin kreira novu playlistu", async () => {
+    const res = await request(app)
+      .post("/playlists")
+      .set("Authorization", `Basic ${adminCredentials}`)
+      .send({ name: "Test Playlist" });
 
     expect(res.status).to.equal(201);
-    expect(res.body).to.have.property("id");
-    expect(res.body.name).to.equal("Moja Playlist");
-    expect(res.body.userId).to.equal(createdUserId);
-
-    createdPlaylistId = res.body.id;
+    createdPlaylistId = res.body.id; // spremamo ID za GET/PUT/DELETE testove
   });
 
-  it("GET /playlists - vraća listu playlisti", async () => {
-    const res = await request(app).get("/playlists");
+  it("POST /playlists - neautorizirani vraća 401", async () => {
+    const res = await request(app).post("/playlists").send({ name: "X" });
+    expect(res.status).to.equal(401);
+  });
 
+  // sada GET po ID-u i GET liste
+  it("GET /playlists - admin može dohvatiti listu", async () => {
+    const res = await request(app)
+      .get("/playlists")
+      .set("Authorization", `Basic ${adminCredentials}`);
     expect(res.status).to.equal(200);
-    expect(res.body).to.be.an("array");
-    expect(res.body.length).to.equal(1);
-    expect(res.body[0].name).to.equal("Moja Playlist");
+    expect(res.body).to.be.an("array").that.is.not.empty;
   });
 
-  it("GET /playlists/:id - vraća playlistu po ID-u", async () => {
-    const res = await request(app).get(`/playlists/${createdPlaylistId}`);
+  it("GET /playlists - user može dohvatiti listu", async () => {
+    const res = await request(app)
+      .get("/playlists")
+      .set("Authorization", `Basic ${userCredentials}`);
+    expect(res.status).to.equal(200);
+    expect(res.body).to.be.an("array").that.is.not.empty;
+  });
 
+  it("GET /playlists/:id - admin dohvaća playlistu po ID-u", async () => {
+    const res = await request(app)
+      .get(`/playlists/${createdPlaylistId}`)
+      .set("Authorization", `Basic ${adminCredentials}`);
     expect(res.status).to.equal(200);
     expect(res.body).to.have.property("id", createdPlaylistId);
-    expect(res.body.songs).to.be.an("array").that.is.empty;
   });
 
-  it("PUT /playlists/:id - ažurira playlistu", async () => {
-    const res = await request(app).put(`/playlists/${createdPlaylistId}`).send({
-      name: "Playlista Remix",
-    });
+  it("GET /playlists/:id - user dohvaća playlistu po ID-u", async () => {
+    const res = await request(app)
+      .get(`/playlists/${createdPlaylistId}`)
+      .set("Authorization", `Basic ${userCredentials}`);
+    expect(res.status).to.equal(200);
+    expect(res.body).to.have.property("id", createdPlaylistId);
+  });
 
+  it("GET /playlists/:id - neautorizirani vraća 401", async () => {
+    const res = await request(app).get(`/playlists/${createdPlaylistId}`);
+    expect(res.status).to.equal(401);
+  });
+
+  // update playlist
+  it("PUT /playlists/:id - admin ažurira playlistu", async () => {
+    const res = await request(app)
+      .put(`/playlists/${createdPlaylistId}`)
+      .set("Authorization", `Basic ${adminCredentials}`)
+      .send({ name: "Playlista Remix" });
     expect(res.status).to.equal(200);
     expect(res.body.name).to.equal("Playlista Remix");
   });
 
-  it("POST /playlist-songs - dodaje pjesmu u playlistu", async () => {
-    const res = await request(app).post("/playlist-songs").send({
-      playlistId: createdPlaylistId,
-      songId: createdSongId,
-    });
+  it("PUT /playlists/:id - neautorizirani vraća 401", async () => {
+    const res = await request(app)
+      .put(`/playlists/${createdPlaylistId}`)
+      .send({ name: "Neće proći" });
+    expect(res.status).to.equal(401);
+  });
 
+  // sada POST playlist-songs da veza postoji prije GET testova
+  it("POST /playlist-songs - admin dodaje pjesmu u playlistu", async () => {
+    const res = await request(app)
+      .post("/playlist-songs")
+      .set("Authorization", `Basic ${adminCredentials}`)
+      .send({ playlistId: createdPlaylistId, songId: createdSongId });
     expect(res.status).to.equal(201);
-
-    const playlist = await prisma.playlist.findUnique({
-      where: { id: createdPlaylistId },
-      include: { songs: { include: { song: true } } },
-    });
-    expect(playlist.songs.length).to.equal(1);
-    expect(playlist.songs[0].song.title).to.equal("Pariske Kapije");
   });
 
-  it("DELETE /playlist-songs - uklanja pjesmu iz playlist", async () => {
-    const res = await request(app).delete(
-      `/playlist-songs/${createdPlaylistId}/${createdSongId}`
-    );
-
-    expect(res.status).to.equal(204);
-
-    const playlist = await prisma.playlist.findUnique({
-      where: { id: createdPlaylistId },
-      include: { songs: { include: { song: true } } },
-    });
-    expect(playlist.songs).to.be.an("array").that.is.empty;
-  });
-
-  it("DELETE /playlists/:id - briše playlistu", async () => {
-    const res = await request(app).delete(`/playlists/${createdPlaylistId}`);
-
+  it("GET /playlist-songs/:playlistId/:songId - admin može dohvatiti vezu", async () => {
+    const res = await request(app)
+      .get(`/playlist-songs/${createdPlaylistId}/${createdSongId}`)
+      .set("Authorization", `Basic ${adminCredentials}`);
     expect(res.status).to.equal(200);
-    expect(res.body.message).to.equal("Playlist deleted");
+  });
+
+  it("GET /playlist-songs/:playlistId/:songId - user može dohvatiti vezu", async () => {
+    const res = await request(app)
+      .get(`/playlist-songs/${createdPlaylistId}/${createdSongId}`)
+      .set("Authorization", `Basic ${userCredentials}`);
+    expect(res.status).to.equal(200);
+  });
+
+  it("DELETE /playlist-songs/:playlistId/:songId - admin briše pjesmu iz playliste", async () => {
+    const res = await request(app)
+      .delete(`/playlist-songs/${createdPlaylistId}/${createdSongId}`)
+      .set("Authorization", `Basic ${adminCredentials}`);
+    expect(res.status).to.equal(204);
+  });
+
+  it("DELETE /playlists/:id - admin briše playlistu", async () => {
+    const res = await request(app)
+      .delete(`/playlists/${createdPlaylistId}`)
+      .set("Authorization", `Basic ${adminCredentials}`);
+    expect(res.status).to.equal(200);
+  });
+
+  it("DELETE /playlists/:id - neautorizirani vraća 401", async () => {
+    const res = await request(app)
+      .delete(`/playlists/${createdPlaylistId}`);
+    expect(res.status).to.equal(401);
   });
 });

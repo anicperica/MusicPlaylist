@@ -6,7 +6,8 @@ import {
   updatePlaylist,
   deletePlaylist,
 } from "../controllers/playlistst.controller.js";
-
+import basicAuth from "../middleware/basicAuthmiddleware.js";
+import getAuth from "../middleware/getAuthmiddleware.js"
 const router = express.Router();
 
 /**
@@ -17,7 +18,6 @@ const router = express.Router();
  *       type: object
  *       required:
  *         - name
- *         - userId
  *       properties:
  *         id:
  *           type: integer
@@ -25,25 +25,31 @@ const router = express.Router();
  *         name:
  *           type: string
  *           description: Name of the playlist
- *         userId:
- *           type: integer
- *           description: ID of the user who owns the playlist
- *         user:
- *           type: object
- *           description: User object (owner)
  *         songs:
  *           type: array
  *           items:
  *             type: object
  *             description: Songs in the playlist
+ *   securitySchemes:
+ *     basicAuth:
+ *       type: http
+ *       scheme: basic
  */
 
 /**
  * @swagger
  * /playlists:
  *   get:
- *     summary: Get all playlists
+ *     summary: Get all playlists (optionally filter by name)
  *     tags: [Playlists]
+ *     security:
+ *       - basicAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Filter playlists by name (contains)
  *     responses:
  *       200:
  *         description: List of playlists
@@ -54,7 +60,7 @@ const router = express.Router();
  *               items:
  *                 $ref: '#/components/schemas/Playlist'
  */
-router.get("/", getPlaylists);
+router.get("/", getAuth,getPlaylists);
 
 /**
  * @swagger
@@ -62,6 +68,8 @@ router.get("/", getPlaylists);
  *   get:
  *     summary: Get playlist by ID
  *     tags: [Playlists]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -79,7 +87,7 @@ router.get("/", getPlaylists);
  *       404:
  *         description: Playlist not found
  */
-router.get("/:id", getPlaylistById);
+router.get("/:id",getAuth, getPlaylistById);
 
 /**
  * @swagger
@@ -87,6 +95,8 @@ router.get("/:id", getPlaylistById);
  *   post:
  *     summary: Create a new playlist
  *     tags: [Playlists]
+ *     security:
+ *       - basicAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -95,12 +105,9 @@ router.get("/:id", getPlaylistById);
  *             type: object
  *             required:
  *               - name
- *               - userId
  *             properties:
  *               name:
  *                 type: string
- *               userId:
- *                 type: integer
  *     responses:
  *       201:
  *         description: Playlist created
@@ -108,8 +115,10 @@ router.get("/:id", getPlaylistById);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Playlist'
+ *       400:
+ *         description: Bad Request
  */
-router.post("/", createPlaylist);
+router.post("/", basicAuth, createPlaylist);
 
 /**
  * @swagger
@@ -117,6 +126,8 @@ router.post("/", createPlaylist);
  *   put:
  *     summary: Update a playlist
  *     tags: [Playlists]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -140,8 +151,10 @@ router.post("/", createPlaylist);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Playlist'
+ *       400:
+ *         description: Bad Request
  */
-router.put("/:id", updatePlaylist);
+router.put("/:id", basicAuth, updatePlaylist);
 
 /**
  * @swagger
@@ -149,6 +162,8 @@ router.put("/:id", updatePlaylist);
  *   delete:
  *     summary: Delete a playlist
  *     tags: [Playlists]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -159,7 +174,9 @@ router.put("/:id", updatePlaylist);
  *     responses:
  *       200:
  *         description: Playlist deleted
+ *       400:
+ *         description: Bad Request
  */
-router.delete("/:id", deletePlaylist);
+router.delete("/:id", basicAuth, deletePlaylist);
 
 export default router;

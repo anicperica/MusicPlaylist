@@ -1,24 +1,35 @@
 import prisma from "../prismaClient.js";
 
-
 export const getPlaylists = async (req, res) => {
   try {
+    const { name } = req.query;
+
+    const where = {};
+    if (name) {
+      where.name = { contains: name, mode: "insensitive" };
+    }
+
     const playlists = await prisma.playlist.findMany({
-      include: { user: true, songs: { include: { song: true } } },
+      where,
+      include: {
+        songs: {
+          select: { song: true },
+        },
+      },
     });
+
     res.json(playlists);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-  
 
 export const getPlaylistById = async (req, res) => {
   const id = Number(req.params.id);
   try {
     const playlist = await prisma.playlist.findUnique({
       where: { id },
-      include: { user: true, songs: { include: { song: true } } },
+      include: { songs: { include: { song: true } } },
     });
     if (!playlist) return res.status(404).json({ error: "Playlist not found" });
     res.json(playlist);
@@ -27,19 +38,17 @@ export const getPlaylistById = async (req, res) => {
   }
 };
 
-
 export const createPlaylist = async (req, res) => {
-  const { name, userId } = req.body;
+  const { name } = req.body;
   try {
     const playlist = await prisma.playlist.create({
-      data: { name, userId },
+      data: { name },
     });
     res.status(201).json(playlist);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
-
 
 export const updatePlaylist = async (req, res) => {
   const id = Number(req.params.id);
@@ -54,7 +63,6 @@ export const updatePlaylist = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
-
 
 export const deletePlaylist = async (req, res) => {
   const id = Number(req.params.id);

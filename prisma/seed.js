@@ -1,21 +1,20 @@
 import prisma from "../src/prismaClient.js";
 
 async function main() {
+
   await prisma.playlistSong.deleteMany();
   await prisma.playlist.deleteMany();
   await prisma.song.deleteMany();
   await prisma.user.deleteMany();
 
   
-  const users = await prisma.user.createMany({
-    data: [
-      { name: "Ivan", email: "ivan@test.com" },
-      { name: "Ana", email: "ana@test.com" },
-      { name: "Marko", email: "marko@test.com" },
-    ],
+  const user1 = await prisma.user.create({
+    data: { username: "user1", password: Buffer.from("user1").toString("base64") },
   });
 
-  const allUsers = await prisma.user.findMany();
+  const user2 = await prisma.user.create({
+    data: { username: "user2", password: Buffer.from("user2").toString("base64") },
+  });
 
   
   const songsData = [
@@ -30,29 +29,12 @@ async function main() {
   await prisma.song.createMany({ data: songsData });
   const allSongs = await prisma.song.findMany();
 
-  
-  const playlist1 = await prisma.playlist.create({
-    data: {
-      name: "Workout Hits",
-      userId: allUsers[0].id,
-    },
-  });
 
-  const playlist2 = await prisma.playlist.create({
-    data: {
-      name: "Chill Vibes",
-      userId: allUsers[1].id,
-    },
-  });
+  const playlist1 = await prisma.playlist.create({ data: { name: "Workout Hits" } });
+  const playlist2 = await prisma.playlist.create({ data: { name: "Chill Vibes" } });
+  const playlist3 = await prisma.playlist.create({ data: { name: "Road Trip" } });
 
-  const playlist3 = await prisma.playlist.create({
-    data: {
-      name: "Road Trip",
-      userId: allUsers[2].id,
-    },
-  });
 
-  +
   await prisma.playlistSong.createMany({
     data: [
       { playlistId: playlist1.id, songId: allSongs[0].id },
@@ -67,7 +49,8 @@ async function main() {
     ],
   });
 
-  console.log("Seed uspješno ubačen ");
+  console.log(" Seed uspješno ubačen!");
+ 
 }
 
 main()

@@ -4,72 +4,97 @@ import { expect } from "chai";
 import app from "../app.js";
 import prisma from "../prismaClient.js";
 
-const api = request(app);
-
 describe("Users routes", () => {
   let createdUserId;
+  const adminCredentials = Buffer.from("admin:admin123").toString("base64");
 
   before(async () => {
-
-    await prisma.playlistSong.deleteMany();
-    await prisma.playlist.deleteMany();
-    await prisma.song.deleteMany();
+   
     await prisma.user.deleteMany();
   });
 
-  it("GET /users - vraća praznu listu", async () => {
-    const res = await api.get("/users");
-    expect(res.status).to.equal(200);
-    expect(res.body).to.be.an("array");
-    expect(res.body.length).to.equal(0);
+  after(async () => {
+    await prisma.$disconnect();
   });
 
-  it("POST /users - kreira usera", async () => {
-    const res = await api.post("/users").send({
-      name: "Test User",
-      email: "test@test.com",
-    });
+  it("POST /users/register - registrira novog korisnika", async () => {
+    const res = await request(app)
+      .post("/users/register")
+      .send({ username: "testuser", password: "12345" });
 
     expect(res.status).to.equal(201);
     expect(res.body).to.have.property("id");
-    expect(res.body.name).to.equal("Test User");
-    expect(res.body.email).to.equal("test@test.com");
+    expect(res.body.username).to.equal("testuser");
 
     createdUserId = res.body.id;
   });
 
-  it("GET /users - vraća 1 usera", async () => {
-    const res = await api.get("/users");
+  it("POST /users/register - vraća 400 za duplikat username-a", async () => {
+    const res = await request(app)
+      .post("/users/register")
+      .send({ username: "testuser", password: "12345" });
 
-    expect(res.status).to.equal(200);
-    expect(res.body.length).to.equal(1);
+    expect(res.status).to.equal(400);
+    expect(res.body.error).to.equal("Username already exists");
   });
 
-  it("GET /users/:id - vraća tog usera", async () => {
-    const res = await api.get(`/users/${createdUserId}`);
+  it("GET /users - vraća listu korisnika (admin)", async () => {
+    const res = await request(app)
+      .get("/users")
+      .set("Authorization", `Basic ${adminCredentials}`);
 
     expect(res.status).to.equal(200);
-    expect(res.body.id).to.equal(createdUserId);
-    expect(res.body.name).to.equal("Test User");
+    expect(res.body).to.be.an("array");
+    expect(res.body.some(u => u.username === "testuser")).to.be.true;
   });
 
-  it("PUT /users/:id - ažurira usera", async () => {
-    await api.put(`/users/${createdUserId}`).send({
-      name: "Updated Name",
-      email: "updated@test.com",
-    });
+  it("GET /users/:id - vraća korisnika po ID-u (admin)", async () => {
+    const res = await request(app)
+      .get(`/users/${createdUserId}`)
+      .set("Authorization", `Basic ${adminCredentials}`);
 
-    const res = await api.get(`/users/${createdUserId}`);
-
-    expect(res.body.name).to.equal("Updated Name");
-    expect(res.body.email).to.equal("updated@test.com");
-  });
-
-  it("DELETE /users/:id - briše usera", async () => {
-    const res = await api.delete(`/users/${createdUserId}`);
     expect(res.status).to.equal(200);
+    expect(res.body).to.have.property("id", createdUserId);
+    expect(res.body).to.have.property("username", "testuser");
+  });
 
-    const all = await api.get("/users");
-    expect(all.body.length).to.equal(0);
+  it("PUT /users/:id - ažurira korisnika (admin)", async () => {
+    const res = await request(app)
+      .put(`/users/${createdUserId}`)
+      .set("Authorization", `Basic ${adminCredentials}`)
+      .send({ username: "updateduser", password: "54321" });
+
+    expect(res.status).to.equal(200);
+    expect(res.body.username).to.equal("updateduser");
+  });
+
+  it("PUT /users/:id - vraća 401 bez autentifikacije", async () => {
+    const res = await request(app)
+      .put(`/users/${createdUserId}`)
+      .send({ username: "failuser" });
+
+    expect(res.status).to.equal(401);
+  });
+
+  it("DELETE /users/:id - briše korisnika (admin)", async () => {
+    const res = await request(app)
+      .delete(`/users/${createdUserId}`)
+      .set("Authorization", `Basic ${adminCredentials}`);
+
+    expect(res.status).to.equal(200);
+    expect(res.body.message).to.equal("User deleted");
+  });
+
+  it("GET /users/:id - vraća 404 za obrisanog korisnika", async () => {
+    const res = await request(app)
+      .get(`/users/${createdUserId}`)
+      .set("Authorization", `Basic ${adminCredentials}`);
+
+    expect(res.status).to.equal(404);
+  });
+
+  it("DELETE /users/:id - vraća 401 bez autentifikacije", async () => {
+    const res = await request(app).delete(`/users/${createdUserId}`);
+    expect(res.status).to.equal(401);
   });
 });

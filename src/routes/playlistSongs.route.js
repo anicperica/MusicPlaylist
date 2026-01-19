@@ -5,7 +5,8 @@ import {
   createPlaylistSong,
   deletePlaylistSong,
 } from "../controllers/playlistSongs.controller.js";
-
+import basicAuth from "../middleware/basicAuthmiddleware.js";
+import getAuth from "../middleware/getAuthmiddleware.js"
 const router = express.Router();
 
 /**
@@ -28,6 +29,10 @@ const router = express.Router();
  *           $ref: '#/components/schemas/Playlist'
  *         song:
  *           $ref: '#/components/schemas/Song'
+ *   securitySchemes:
+ *     basicAuth:
+ *       type: http
+ *       scheme: basic
  */
 
 /**
@@ -36,6 +41,8 @@ const router = express.Router();
  *   get:
  *     summary: Get all playlist-song relationships
  *     tags: [PlaylistSongs]
+ *     security:
+ *       - basicAuth: []
  *     responses:
  *       200:
  *         description: List of all playlist-song relationships
@@ -46,7 +53,7 @@ const router = express.Router();
  *               items:
  *                 $ref: '#/components/schemas/PlaylistSong'
  */
-router.get("/", getPlaylistSongs);
+router.get("/",getAuth, getPlaylistSongs);
 
 /**
  * @swagger
@@ -54,6 +61,8 @@ router.get("/", getPlaylistSongs);
  *   get:
  *     summary: Get a playlist-song relationship by playlistId and songId
  *     tags: [PlaylistSongs]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: playlistId
@@ -68,16 +77,16 @@ router.get("/", getPlaylistSongs);
  *           type: integer
  *         description: Song ID
  *     responses:
- *       200:
+ *       '200':
  *         description: Playlist-song relationship details
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PlaylistSong'
- *       404:
+ *       '404':
  *         description: Playlist-song relationship not found
  */
-router.get("/:playlistId/:songId", getPlaylistSong);
+router.get("/:playlistId/:songId",getAuth, getPlaylistSong);
 
 /**
  * @swagger
@@ -85,6 +94,8 @@ router.get("/:playlistId/:songId", getPlaylistSong);
  *   post:
  *     summary: Create a new playlist-song relationship
  *     tags: [PlaylistSongs]
+ *     security:
+ *       - basicAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -100,14 +111,16 @@ router.get("/:playlistId/:songId", getPlaylistSong);
  *               songId:
  *                 type: integer
  *     responses:
- *       201:
+ *       '201':
  *         description: Playlist-song relationship created
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PlaylistSong'
+ *       '400':
+ *         description: Bad Request
  */
-router.post("/", createPlaylistSong);
+router.post("/", basicAuth, createPlaylistSong);
 
 /**
  * @swagger
@@ -115,6 +128,8 @@ router.post("/", createPlaylistSong);
  *   delete:
  *     summary: Delete a playlist-song relationship
  *     tags: [PlaylistSongs]
+ *     security:
+ *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: playlistId
@@ -129,9 +144,11 @@ router.post("/", createPlaylistSong);
  *           type: integer
  *         description: Song ID
  *     responses:
- *       200:
+ *       '204':
  *         description: Playlist-song relationship deleted successfully
+ *       '400':
+ *         description: Bad Request
  */
-router.delete("/:playlistId/:songId", deletePlaylistSong);
+router.delete("/:playlistId/:songId", basicAuth, deletePlaylistSong);
 
 export default router;

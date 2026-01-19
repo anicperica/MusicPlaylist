@@ -7,4 +7,4 @@ app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
 //http://localhost:3000/api-docs/#/
-//npx prisma db seed
+//npm run seed
