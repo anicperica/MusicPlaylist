@@ -16,12 +16,12 @@ describe("Playlists routes with admin/user GET middleware", () => {
     await prisma.song.deleteMany();
     await prisma.user.deleteMany();
 
-    // kreiramo usera
+   
     await prisma.user.create({
       data: { username: "user", password: Buffer.from("user123").toString("base64") },
     });
 
-    // kreiramo pjesmu
+    
     const song = await prisma.song.create({
       data: { title: "Pariske Kapije", artist: "Haris Džinović", duration: 250 },
     });
@@ -32,7 +32,7 @@ describe("Playlists routes with admin/user GET middleware", () => {
     await prisma.$disconnect();
   });
 
-  // prvo kreiramo playlistu POST-om
+ 
   it("POST /playlists - admin kreira novu playlistu", async () => {
     const res = await request(app)
       .post("/playlists")
@@ -40,7 +40,7 @@ describe("Playlists routes with admin/user GET middleware", () => {
       .send({ name: "Test Playlist" });
 
     expect(res.status).to.equal(201);
-    createdPlaylistId = res.body.id; // spremamo ID za GET/PUT/DELETE testove
+    createdPlaylistId = res.body.id; 
   });
 
   it("POST /playlists - neautorizirani vraća 401", async () => {
@@ -48,7 +48,7 @@ describe("Playlists routes with admin/user GET middleware", () => {
     expect(res.status).to.equal(401);
   });
 
-  // sada GET po ID-u i GET liste
+
   it("GET /playlists - admin može dohvatiti listu", async () => {
     const res = await request(app)
       .get("/playlists")
@@ -86,7 +86,7 @@ describe("Playlists routes with admin/user GET middleware", () => {
     expect(res.status).to.equal(401);
   });
 
-  // update playlist
+ 
   it("PUT /playlists/:id - admin ažurira playlistu", async () => {
     const res = await request(app)
       .put(`/playlists/${createdPlaylistId}`)
@@ -103,7 +103,7 @@ describe("Playlists routes with admin/user GET middleware", () => {
     expect(res.status).to.equal(401);
   });
 
-  // sada POST playlist-songs da veza postoji prije GET testova
+
   it("POST /playlist-songs - admin dodaje pjesmu u playlistu", async () => {
     const res = await request(app)
       .post("/playlist-songs")

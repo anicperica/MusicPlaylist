@@ -33,7 +33,7 @@ describe("PlaylistSongs routes with admin/user GET middleware", () => {
     await prisma.$disconnect();
   });
 
-  // prvo POST - stvori vezu
+
   it("POST /playlist-songs - admin dodaje pjesmu u playlistu", async () => {
     const res = await request(app)
       .post("/playlist-songs")
@@ -53,7 +53,7 @@ describe("PlaylistSongs routes with admin/user GET middleware", () => {
     expect(res.status).to.equal(401);
   });
 
-  // sada GET testovi
+  
   it("GET /playlist-songs - admin može dohvatiti listu", async () => {
     const res = await request(app)
       .get("/playlist-songs")
@@ -98,7 +98,7 @@ describe("PlaylistSongs routes with admin/user GET middleware", () => {
     expect(res.status).to.equal(401);
   });
 
-  // DELETE testovi
+  
   it("DELETE /playlist-songs/:playlistId/:songId - admin briše pjesmu iz playliste", async () => {
     const res = await request(app)
       .delete(`/playlist-songs/${createdPlaylistId}/${createdSongId}`)
